@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고1 통합과학 | 화학 결합과 물질의 성질</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0a0a1a;
+            color: #e0e0e0;
+        }
+        .font-playfair { font-family: 'Playfair Display', serif; }
+        .page-bg { background: radial-gradient(ellipse at top, #1b2735 0%, #090a0f 100%); }
+        input[type="radio"]:checked + label {
+            background-color: #c0a060; /* Gold color for this theme */
+            color: #111;
+            border-color: #d4b070;
+            font-weight: bold;
+        }
+        .correct .correct-answer-label { background-color: #22c55e; color: white; }
+        .incorrect .user-answer-label { background-color: #ef4444; color: white; text-decoration: line-through; }
+        .incorrect .correct-answer-label { border: 2px solid #22c55e; }
+        #result-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); z-index: 40; }
+        #result-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; max-height: 90vh; overflow-y: auto; }
+        .choice-item { border: 2px solid rgba(255, 255, 255, 0.1); }
+        .choice-item.selected { border-color: #c0a060; background-color: rgba(192, 160, 96, 0.1); }
+        .passage-box { line-height: 1.8; }
+    </style>
+</head>
+<body class="page-bg">
+
+    <!-- Header -->
+    <header class="fixed w-full z-30 bg-black/30 backdrop-blur-sm shadow-lg">
+        <nav class="container mx-auto max-w-7xl px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold font-playfair text-white">CHEMISTRY QUIZ II</div>
+            <a href="#" class="border border-amber-500 text-amber-500 font-bold px-5 py-2 rounded-full hover:bg-amber-500 hover:text-gray-900 transition text-sm">다른 평가 보기</a>
+        </nav>
+    </header>
+
+    <div class="container mx-auto max-w-7xl p-4 pt-24">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 문제 영역 -->
+            <main class="lg:col-span-2 bg-black/20 p-6 rounded-lg shadow-lg border border-gray-800 overflow-y-auto" style="height: 85vh;">
+                <div class="border-b border-gray-700 pb-4 mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">고1 통합과학 - 화학 결합과 물질의 성질</h1>
+                        <p class="text-gray-400">총 8문항 | 제한 시간 15분</p>
+                    </div>
+                    <div id="timer" class="text-3xl font-bold text-amber-400 font-playfair" style="min-width: 100px; text-align: right;">15:00</div>
+                </div>
+                <div id="questions-container" class="space-y-12"></div>
+            </main>
+
+            <!-- 답안지 영역 -->
+            <aside class="bg-black/20 p-6 rounded-lg shadow-lg border border-gray-800">
+                <h2 class="text-xl font-bold text-center border-b border-gray-700 pb-3 mb-4">빠른 답안지</h2>
+                <div id="answer-sheet" class="space-y-3 max-h-[450px] overflow-y-auto pr-2"></div>
+                <button id="grade-button" class="w-full mt-6 bg-amber-500 text-gray-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition duration-300 text-lg">채점하기</button>
+                <div id="result-display" class="hidden mt-4 text-center">
+                    <p class="text-2xl font-bold" id="score-text"></p>
+                    <button id="show-result-modal-btn" class="w-full mt-4 bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-700">결과 분석 보기</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- 결과 분석 모달 -->
+    <div id="result-modal-overlay" class="hidden">
+        <div id="result-modal" class="bg-gray-900 border border-amber-500/30 rounded-2xl w-11/12 max-w-2xl p-6 sm:p-8 shadow-2xl">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-500 hover:text-white text-3xl font-bold">&times;</button>
+            <h2 class="text-center text-3xl font-bold mb-2">총점 <span id="modal-total-score" class="text-amber-400"></span>점</h2>
+            <div class="w-full max-w-md mx-auto my-4"><canvas id="result-chart"></canvas></div>
+            <div class="bg-black/20 rounded-lg p-4 flex flex-wrap justify-around text-center shadow-inner gap-2">
+                <div><span class="font-bold">화학 결합 기초 </span><span id="score-bonding-basics" class="text-amber-400 font-bold"></span>점</div>
+                <div><span class="font-bold">결합 종류 비교 </span><span id="score-bonding-types" class="text-amber-400 font-bold"></span>점</div>
+                <div><span class="font-bold">물질의 성질 </span><span id="score-material-properties" class="text-amber-400 font-bold"></span>점</div>
+            </div>
+            <div class="text-center mt-6">
+                <p id="assessment-text" class="text-lg"></p>
+                <p id="recommendation-text" class="text-md text-gray-400 mt-1"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const quizData = {
+            gradeName: "고1 통합과학",
+            totalQuestions: 8,
+            data: [
+                {
+                    subject: '옥텟 규칙과 화학 결합',
+                    passage: '원자들은 화학 결합을 통해 가장 바깥 전자 껍질에 8개의 전자를 채워 안정적인 전자 배치를 이루려는 경향이 있습니다. 이를 옥텟 규칙이라고 합니다. 비활성 기체(18족 원소)는 이미 안정한 전자 배치를 가지고 있어 반응성이 매우 낮습니다. 다른 원소들은 전자를 잃거나 얻어(이온 결합) 또는 전자쌍을 공유하여(공유 결합) 비활성 기체와 같은 전자 배치를 가지려 합니다.',
+                    questions: [
+                        { q: '1. 화학 결합이 형성되는 이유에 대한 설명으로 옳은 것을 모두 고른 것은? <br> <div class="text-sm mt-2 p-3 bg-gray-800/50 rounded-md border border-gray-700">ㄱ. 원소들은 더 안정한 전자 배치를 갖기 위해 결합한다.<br>ㄴ. 결합 시 원소들은 18족 원소와 같은 전자 배치를 이루려 한다.<br>ㄷ. 가능한 한 많은 전자를 얻기 위해 결합이 이루어진다.</div>', choices: ['ㄱ', 'ㄷ', 'ㄱ, ㄴ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'], answer: 2, type: 'bonding-basics' },
+                        { q: '2. 원자 A(전자 3개)와 B(전자 9개)가 가장 안정한 이온이 되었을 때, 이에 대한 설명으로 옳은 것은?', choices: ['A, B 이온의 전자 껍질 수는 같다.', 'A는 전자를 얻고, B는 전자를 잃는다.', 'A, B 이온의 가장 바깥 껍질의 전자 수는 같다.', 'A 이온은 +2가, B 이온은 -2가 전하를 띤다.', '두 이온은 전자쌍을 공유하여 결합한다.'], answer: 2, type: 'bonding-basics' }
+                    ]
+                },
+                {
+                    subject: '이온 결합과 공유 결합',
+                    passage: '화학 결합은 크게 이온 결합과 공유 결합으로 나뉩니다. 이온 결합은 금속 원자가 전자를 잃어 양이온이 되고, 비금속 원자가 전자를 얻어 음이온이 된 후, 두 이온 사이의 정전기적 인력으로 형성됩니다. 공유 결합은 두 비금속 원자가 서로 전자쌍을 공유하여 형성되는 결합입니다. 예를 들어 물(H₂O) 분자에서는 산소 원자 1개와 수소 원자 2개가 전자쌍을 공유하고 있습니다.',
+                    questions: [
+                        { q: '3. 화합물 XY₂의 화학 결합 모형이 X²⁺ 이온과 두 개의 Y⁻ 이온으로 이루어져 있을 때, 이 물질에 대한 설명으로 옳은 것은? (단, X, Y는 임의의 원소 기호)', choices: ['공유 결합 물질이다.', '액체 상태에서 전기 전도성이 있다.', '분자로 존재한다.', 'Y는 금속 원소이다.', 'X와 Y는 같은 주기 원소이다.'], answer: 1, type: 'bonding-types' },
+                        { q: '4. 물(H₂O) 분자의 생성 과정과 구조에 대한 설명으로 옳은 것을 모두 고른 것은? <br> <div class="text-sm mt-2 p-3 bg-gray-800/50 rounded-md border border-gray-700">ㄱ. 1개의 물 분자 안에는 2쌍의 공유 전자쌍이 있다.<br>ㄴ. 수소 원자는 헬륨(He)과 같은 전자 배치를 갖게 된다.<br>ㄷ. 산소 원자는 네온(Ne)과 같은 전자 배치를 갖게 된다.</div>', choices: ['ㄱ', 'ㄷ', 'ㄱ, ㄴ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'], answer: 4, type: 'bonding-types' }
+                    ]
+                },
+                {
+                    subject: '화학 결합 물질의 성질',
+                    passage: '이온 결합 물질과 공유 결합 물질은 성질에 차이가 있습니다. 이온 결합 물질은 일반적으로 녹는점과 끓는점이 높고, 고체 상태에서는 전기가 통하지 않지만 액체나 수용액 상태에서는 전기가 통합니다. 힘을 가하면 쉽게 부서지는 특징도 있습니다. 반면, 공유 결합 물질은 대부분 녹는점과 끓는점이 낮고, 고체와 액체 상태 모두에서 전기가 통하지 않습니다 (예외 있음).',
+                    questions: [
+                        { q: '5. 이온 결합 물질의 일반적인 성질에 대한 설명으로 옳은 학생만을 모두 고른 것은? <br> <div class="text-sm mt-2 p-3 bg-gray-800/50 rounded-md border border-gray-700"><b>학생 A:</b> 예시로 염화나트륨(NaCl), 산화마그네슘(MgO)이 있어.<br><b>학생 B:</b> 대부분 녹는점이 높아 실온에서 고체 상태야.<br><b>학생 C:</b> 힘을 가하면 쉽게 쪼개지거나 부서져.</div>', choices: ['A', 'B', 'A, C', 'B, C', 'A, B, C'], answer: 4, type: 'material-properties' },
+                        { q: '6. 공유 결합 물질의 특징에 대한 설명으로 옳은 것을 모두 고른 것은? <br> <div class="text-sm mt-2 p-3 bg-gray-800/50 rounded-md border border-gray-700">ㄱ. 설탕(포도당) 수용액은 전류가 흐르지 않는다.<br>ㄴ. 물(H₂O) 분자에는 총 2개의 공유 전자쌍이 있다.<br>ㄷ. 염소 분자(Cl₂)의 결합은 염화나트륨(NaCl)의 결합과 종류가 같다.</div>', choices: ['ㄱ, ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ', 'ㄱ', 'ㄴ'], answer: 0, type: 'material-properties' },
+                        { q: '7. 어떤 물질 A, B의 전기 전도성을 실험한 결과, A는 고체와 수용액에서 모두 전류가 흐르지 않았고, B는 고체에서는 흐르지 않았지만 수용액에서는 흘렀다. 이에 대한 설명으로 옳은 것은?', choices: ['A는 이온 결합, B는 공유 결합 물질이다.', 'A의 녹는점은 B보다 항상 높다.', 'B는 양이온과 음이온의 결합으로 이루어져 있다.', 'A는 물에 녹아 이온화된다.', 'A, B 모두 금속 결합 물질이다.'], answer: 2, type: 'material-properties' },
+                        { q: '8. 다음 중 이온 결합 물질로만 짝지어진 것은?', choices: ['염화나트륨(NaCl), 물(H₂O)', '산화마그네슘(MgO), 암모니아(NH₃)', '염화칼슘(CaCl₂), 염화나트륨(NaCl)', '포도당(C₆H₁₂O₆), 이산화탄소(CO₂)', '질소(N₂), 산소(O₂)'], answer: 2, type: 'bonding-types' }
+                    ]
+                }
+            ]
+        };
+
+        const questionsContainer = document.getElementById('questions-container');
+        const answerSheet = document.getElementById('answer-sheet');
+        const gradeButton = document.getElementById('grade-button');
+        const resultDisplay = document.getElementById('result-display');
+        const scoreText = document.getElementById('score-text');
+        const showResultModalBtn = document.getElementById('show-result-modal-btn');
+        const modalOverlay = document.getElementById('result-modal-overlay');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const timerDisplay = document.getElementById('timer');
+        
+        let userAnswers = new Array(quizData.totalQuestions).fill(null);
+        let resultChartInstance = null;
+        let timerInterval = null;
+
+        function startTimer(duration) {
+            let timer = duration, minutes, seconds;
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                timerDisplay.textContent = minutes + ":" + seconds;
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "시간 종료";
+                    timerDisplay.classList.add('text-red-500');
+                    gradeButton.click();
+                }
+            }, 1000);
+        }
+        
+        function initializeQuiz() {
+            let questionCounter = 0;
+            quizData.data.forEach(section => {
+                let sectionHtml = `<section>
+                    <h3 class="text-xl font-bold text-amber-400 border-l-4 border-amber-400 pl-3 mb-4">${section.subject} [${questionCounter + 1}~${questionCounter + section.questions.length}]</h3>
+                    <div class="passage-box bg-black/20 p-5 rounded-lg mb-6 text-gray-300 border border-gray-800">${section.passage}</div>
+                    <div class="space-y-8">`;
+                section.questions.forEach(q => {
+                    questionCounter++;
+                    q.q = q.q.replace(/^\d+\./, `${questionCounter}.`);
+                    sectionHtml += `<div class="question-block" id="q-block-${questionCounter}">
+                        <p class="font-bold text-lg mb-4 text-gray-200">${q.q}</p><div class="space-y-2">`;
+                    q.choices.forEach((choice, choiceIndex) => {
+                        sectionHtml += `<div class="choice-item p-3 rounded-lg hover:bg-amber-500/10 hover:border-amber-500 cursor-pointer transition-all" data-q="${questionCounter}" data-a="${choiceIndex}">
+                            <span class="font-bold mr-3 text-amber-500">${choiceIndex + 1}</span><span class="text-gray-300">${choice}</span></div>`;
+                    });
+                    sectionHtml += `</div></div>`;
+                    
+                    let answerSheetHtml = `<div class="flex items-center justify-between p-2 rounded-md" id="as-q-${questionCounter}">
+                        <span class="font-bold text-gray-400">${questionCounter}번</span><div class="flex space-x-1">`;
+                    q.choices.forEach((_, choiceIndex) => {
+                        answerSheetHtml += `<input type="radio" name="q${questionCounter}" id="q${questionCounter}a${choiceIndex}" value="${choiceIndex}" class="hidden">
+                        <label for="q${questionCounter}a${choiceIndex}" class="flex items-center justify-center w-8 h-8 rounded-full border-2 border-gray-600 cursor-pointer hover:bg-gray-700 text-gray-400 transition-colors">${choiceIndex + 1}</label>`;
+                    });
+                    answerSheetHtml += `</div></div>`;
+                    answerSheet.innerHTML += answerSheetHtml;
+                });
+                sectionHtml += `</div></section>`;
+                questionsContainer.innerHTML += sectionHtml;
+            });
+            startTimer(15 * 60);
+        }
+        
+        function createRadarChart(userScores, avgScores) {
+            const ctx = document.getElementById('result-chart').getContext('2d');
+            if (resultChartInstance) resultChartInstance.destroy();
+            
+            resultChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['화학 결합 기초', '결합 종류 비교', '물질의 성질'],
+                    datasets: [{
+                        label: '나의 성취도', data: userScores,
+                        backgroundColor: 'rgba(192, 160, 96, 0.2)', borderColor: 'rgba(192, 160, 96, 1)',
+                        borderWidth: 2, pointBackgroundColor: 'rgba(192, 160, 96, 1)'
+                    }, {
+                        label: '평균', data: avgScores,
+                        backgroundColor: 'rgba(107, 114, 128, 0.2)', borderColor: 'rgba(107, 114, 128, 1)',
+                        borderWidth: 2, pointBackgroundColor: 'rgba(107, 114, 128, 1)'
+                    }]
+                },
+                options: {
+                    scales: { r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.2)' },
+                        suggestedMin: 0, suggestedMax: 100,
+                        pointLabels: { font: { size: 14, weight: 'bold' }, color: '#e0e0e0' },
+                        ticks: { backdropColor: 'rgba(0, 0, 0, 0.5)', color: '#e0e0e0', stepSize: 25, callback: value => value + '%' }
+                    }},
+                    plugins: { legend: { labels: { color: '#e0e0e0' } } }
+                }
+            });
+        }
+        
+        function gradeQuiz() {
+            clearInterval(timerInterval);
+            let scores = { 'bonding-basics': 0, 'bonding-types': 0, 'material-properties': 0 };
+            let totals = { 'bonding-basics': 0, 'bonding-types': 0, 'material-properties': 0 };
+            let totalCorrect = 0;
+            let qNum = 0;
+
+            quizData.data.forEach(section => {
+                section.questions.forEach(q => {
+                    qNum++;
+                    totals[q.type]++;
+                    const userAnswer = userAnswers[qNum - 1];
+                    const isCorrect = userAnswer === q.answer;
+                    
+                    document.getElementById(`as-q-${qNum}`).querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+                    const userAnswerLabel = document.querySelector(`#as-q-${qNum} label[for="q${qNum}a${userAnswer}"]`);
+                    const correctAnswerLabel = document.querySelector(`#as-q-${qNum} label[for="q${qNum}a${q.answer}"]`);
+
+                    if (isCorrect) {
+                        totalCorrect++; scores[q.type]++;
+                        document.getElementById(`as-q-${qNum}`).classList.add('correct');
+                    } else {
+                        document.getElementById(`as-q-${qNum}`).classList.add('incorrect');
+                        if (userAnswerLabel) userAnswerLabel.classList.add('user-answer-label');
+                    }
+                    if (correctAnswerLabel) correctAnswerLabel.classList.add('correct-answer-label');
+                });
+            });
+
+            const finalScore = Math.round((totalCorrect / quizData.totalQuestions) * 100);
+            scoreText.textContent = `총 ${quizData.totalQuestions}문제 중 ${totalCorrect}문제 정답! (${finalScore}점)`;
+            resultDisplay.classList.remove('hidden');
+            
+            document.getElementById('modal-total-score').textContent = finalScore;
+            const scoreBasics = Math.round((scores['bonding-basics'] / (totals['bonding-basics'] || 1)) * 100);
+            const scoreTypes = Math.round((scores['bonding-types'] / (totals['bonding-types'] || 1)) * 100);
+            const scoreProperties = Math.round((scores['material-properties'] / (totals['material-properties'] || 1)) * 100);
+
+            document.getElementById('score-bonding-basics').textContent = scoreBasics;
+            document.getElementById('score-bonding-types').textContent = scoreTypes;
+            document.getElementById('score-material-properties').textContent = scoreProperties;
+
+            let level, recommendation;
+            if (finalScore < 50) { level = '보완 필요'; recommendation = '화학 결합의 기본 개념부터 다시 학습하는 것이 좋습니다. 특히 이온 결합과 공유 결합의 형성 원리를 복습해 보세요.'; }
+            else if (finalScore < 85) { level = '보통'; recommendation = '잘하고 있습니다! 각 결합에 따른 물질의 전기 전도성, 녹는점 차이를 중심으로 오답 노트를 작성하면 더 좋은 결과를 얻을 수 있을 거예요.'; }
+            else { level = '우수'; recommendation = '훌륭합니다! 다양한 화합물의 결합 종류를 예측하고 성질을 설명하는 심화 문제 풀이를 통해 실력을 완성해 보세요.'; }
+            
+            document.getElementById('assessment-text').innerHTML = `테스트 결과, <span class="text-amber-400 font-bold">${finalScore}점</span>으로<br>화학 결합 단원 이해도는 <span class="font-playfair text-red-500">${level}</span> 수준입니다.`;
+            document.getElementById('recommendation-text').textContent = recommendation;
+            
+            const userChartScores = [scoreBasics, scoreTypes, scoreProperties];
+            createRadarChart(userChartScores, [75, 75, 75]);
+        }
+
+        questionsContainer.addEventListener('click', (e) => {
+            const choiceDiv = e.target.closest('.choice-item');
+            if (choiceDiv && !gradeButton.disabled) {
+                const qNum = choiceDiv.dataset.q;
+                const aNum = choiceDiv.dataset.a;
+                document.getElementById(`q${qNum}a${aNum}`).click();
+            }
+        });
+
+        answerSheet.addEventListener('change', (e) => {
+            if (e.target.type === 'radio') {
+                const qNum = parseInt(e.target.name.substring(1));
+                userAnswers[qNum - 1] = parseInt(e.target.value);
+                document.querySelectorAll(`#q-block-${qNum} .choice-item`).forEach(item => item.classList.remove('selected'));
+                document.querySelector(`#q-block-${qNum} .choice-item[data-a="${userAnswers[qNum-1]}"]`).classList.add('selected');
+            }
+        });
+
+        gradeButton.addEventListener('click', () => {
+            const unanswered = userAnswers.map((a, i) => a === null ? i + 1 : null).filter(a => a !== null);
+            if (unanswered.length > 0) {
+                console.log('Unanswered questions:', unanswered);
+            }
+            gradeButton.disabled = true;
+            gradeButton.textContent = '채점 완료';
+            gradeButton.classList.remove('bg-amber-500', 'hover:bg-amber-400');
+            gradeButton.classList.add('bg-gray-500', 'cursor-not-allowed');
+            gradeQuiz();
+        });
+        
+        showResultModalBtn.addEventListener('click', () => modalOverlay.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => modalOverlay.classList.add('hidden'));
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.add('hidden'); });
+
+        initializeQuiz();
+    </script>
+</body>
+</html>
